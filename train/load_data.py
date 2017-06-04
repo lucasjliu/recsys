@@ -8,13 +8,6 @@ data_path_amazon_office = './data/reviews_Office_Products_5.json.gz'
 data_amazon_columns = ["reviewerID", "asin", "reviewerName", "helpful", 
                        "reviewText", "overall", "summary", "unixReviewTime", "reviewTime"]
 
-data_path_yelp_reviews = "/Users/lucas/Desktop/Code/DL/recsys/data/" \
-    "yelp_dataset_challenge_round9/yelp_academic_dataset_review.json"
-data_path_yelp_users = "/Users/lucas/Desktop/Code/DL/recsys/data/" \
-    "yelp_dataset_challenge_round9/yelp_academic_dataset_user.json"
-data_yelp_columns = ["business_id", "cool", "date", "funny", "review_id", 
-                     "stars", "text", "type", "useful", "user_id"]
-
 '''
 ---------------------------------------
 load dataset
