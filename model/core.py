@@ -174,6 +174,7 @@ class FactorsMatrix(torch.nn.Module):
 	
 	def get_row(self, idx):
 		one_hot = self.one_hot(self.linear.in_features, idx)
+		if torch.cuda.is_available(): one_hot = one_hot.cuda()
 		row = self.linear(torch.autograd.Variable(one_hot))
 		return row
 	
@@ -190,7 +191,9 @@ class FactMachine(torch.nn.Module):
 
 	def forward(self, X):
 		m = len(X)
-		y = self.w0(torch.autograd.Variable(torch.ones(m, 1)))
+		ones = torch.ones(m, 1) 
+		if torch.cuda.is_available(): ones = ones.cuda()
+		y = self.w0(torch.autograd.Variable(ones))
 		y = y.add(self.w(X))
 		dim = self.V.linear.in_features
 		for k in range(m):

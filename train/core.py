@@ -4,6 +4,8 @@ import torch.utils.data
 from torch.autograd import Variable
 from .load_data import *
 import os
+import time
+import datetime
 
 '''
 def get_X(collection, I, embed_name=None):
@@ -28,8 +30,6 @@ def train_test_split(collection, test_ratio, seed):
 	y_test = get_y(collection, I_test, "overall")
 '''
 
-make_var = lambda x, volatile: torch.autograd.Variable(torch.FloatTensor(x), volatile=volatile)
-
 class JointDataset(torch.utils.data.Dataset):
 	def __init__(self, collection, indices):
 		self.collection = collection
@@ -49,10 +49,18 @@ class JointDataset(torch.utils.data.Dataset):
 	@staticmethod
 	def getvar(data, target, for_test=False):
 		n_col = len(data[0])
-		data = [ (Variable(torch.FloatTensor(
-			JointDataset.pad([[row[i]] for row in data])), 
-			volatile=for_test)) for i in range(n_col) ]
-		target = Variable(torch.FloatTensor([target]))
+		if torch.cuda.is_available():
+			data = [ (Variable(torch.FloatTensor(
+				JointDataset.pad([[row[i]] for row in data])).cuda(), 
+				volatile=for_test)) for i in range(n_col) ]
+		else:
+			data = [ (Variable(torch.FloatTensor(
+				JointDataset.pad([[row[i]] for row in data])), 
+				volatile=for_test)) for i in range(n_col) ]
+		target = torch.FloatTensor(target)
+		if torch.cuda.is_available():
+			target = target.cuda(async=True)
+		target = Variable(target)
 		return data, target
 	
 	@staticmethod
@@ -103,9 +111,9 @@ class Trainer:
 			loss.backward()
 			self.optimizer.step()
 			if batch_idx % log_interval == 0:
-				print('{} [{}] Epoch: {} [{}/{} ({:.0f}%)] Loss: {:.6f}'.format(
-					timestamp(), pid, epoch, batch_idx * len(target), len(data_loader.dataset),
-					100. * batch_idx / len(data_loader), loss.data[0]))
+				print('{} [{}] Epoch: {} [{}/{} ({:.1f}%)] Loss: {:.6f}'.format(
+					Trainer.timestamp(), pid, epoch, batch_idx * len(target), len(data_loader.dataset),
+					100. * batch_idx * len(target) / len(data_loader), loss.data[0]))
 
 	def test_epoch(self, epoch, model, data_loader, log_interval):
 		model.eval()
@@ -115,4 +123,4 @@ class Trainer:
 			pred = model(data)
 			test_loss += self.loss_fn(pred, target).data[0]
 		test_loss /= len(data_loader)
-		print('\n{} Test set: Average loss: {:.4f}\n'.format(timestamp(), test_loss))
+		print('\n{} Test set: Average loss: {:.4f}\n'.format(Trainer.timestamp(), test_loss))

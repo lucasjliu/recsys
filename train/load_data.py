@@ -50,8 +50,7 @@ print("building index and word embeddings...")
 amazon_data_text_collection = TextCollection(amazon_data_json, ["reviewerID", "asin"], 
                             ["overall", "reviewTime", "reviewText", "summary"])
 amazon_data_text_collection.build_key_index()
-amazon_data_text_collection.build_embeddings(embeds_word2vec300, "summary")
-#amazon_data_text_collection.build_embeddings(embeds_word2vec300, "reviewText")
+amazon_data_text_collection.build_embeddings(embeds_word2vec300, "reviewText")
 
 print("done")
 
