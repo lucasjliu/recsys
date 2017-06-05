@@ -23,12 +23,12 @@ gz_open_func = lambda file_path: gzip.open(file_path, 'r')
 
 amazon_data_json = JsonDatasrc(data_path_amazon_office, gz_open_func, eval)
 
-print(len(amazon_data_json.raw_json))
-pprint(amazon_data_json.raw_json[0])
+#print(len(amazon_data_json.raw_json))
+#pprint(amazon_data_json.raw_json[0])
 
-amazon_data_json.describe(["helpful"])
-amazon_data_json.count_by_col("reviewerID")
-amazon_data_json.count_by_col("asin")
+#amazon_data_json.describe(["helpful"])
+#amazon_data_json.count_by_col("reviewerID")
+#amazon_data_json.count_by_col("asin")
 
 print("done.")
 
@@ -48,10 +48,11 @@ print("done.")
 print("building index and word embeddings...")
 
 amazon_data_text_collection = TextCollection(amazon_data_json, ["reviewerID", "asin"], 
-                            ["overall", "reviewTime", "reviewText", "summary"])
+                            ["overall", "reviewText"])
 amazon_data_text_collection.build_key_index()
 amazon_data_text_collection.build_embeddings(embeds_word2vec300, "reviewText")
-
+del embeds_word2vec300
+amazon_data_text_collection.data.rm_col("reviewText")
 print("done")
 
 collection = amazon_data_text_collection

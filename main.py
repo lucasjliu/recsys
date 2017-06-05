@@ -7,7 +7,7 @@ from train.load_data import collection
 
 net = model.JoinConvNet(n1, c, t, o)
 loss_fn = torch.nn.MSELoss()
-optim = torch.optim.SGD(net.parameters(), lr=lr)
+optim = torch.optim.RMSprop(net.parameters(), lr=lr, momentum=1e-5, weight_decay=5e-6)
 
 num_process = 1
 cuda_available = torch.cuda.is_available()

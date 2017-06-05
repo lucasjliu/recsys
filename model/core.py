@@ -49,8 +49,8 @@ class JsonDatasrc(Datasrc):
 				cell[new_name] = cell[name]
 			del cell[name]
 	
-	def rm_col(name):
-		rename_col(name, None)
+	def rm_col(self, name):
+		self.mv_col(name, None)
 
 class _KeyIndex:
 	def __init__(self):

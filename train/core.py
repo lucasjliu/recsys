@@ -94,7 +94,8 @@ class Trainer:
 	def train(self, model, train_loader, test_loader, epochs, log_interval=1):
 		for epoch in range(1, epochs + 1):
 			self.train_epoch(epoch, model, train_loader, log_interval)
-			self.test_epoch(model, test_loader)
+			if os.getpid() % 4 == 0: 
+				self.test_epoch(model, test_loader)
 	
 	@staticmethod
 	def timestamp():
@@ -111,8 +112,8 @@ class Trainer:
 			loss.backward()
 			self.optimizer.step()
 			if batch_idx % log_interval == 0:
-				print('{} [{}] Epoch: {} [{}/{} ({:.1f}%)] Loss: {:.6f}'.format(
-					Trainer.timestamp(), pid, epoch, batch_idx * len(target), len(data_loader.dataset),
+				print('[{}][{}] Epoch {}, {}/{} ({:.1f}%) Loss: {:.6f}'.format(
+					pid, Trainer.timestamp(), epoch, batch_idx * len(target), len(data_loader.dataset),
 					100. * batch_idx * len(target) / len(data_loader), loss.data[0]))
 
 	def test_epoch(self, epoch, model, data_loader, log_interval):
@@ -123,4 +124,4 @@ class Trainer:
 			pred = model(data)
 			test_loss += self.loss_fn(pred, target).data[0]
 		test_loss /= len(data_loader)
-		print('\n{} Test set: Average loss: {:.4f}\n'.format(Trainer.timestamp(), test_loss))
+		print('\n[{}] Test set: Average loss: {:.4f}\n'.format(Trainer.timestamp(), test_loss))
