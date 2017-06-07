@@ -1,5 +1,6 @@
 import pandas
 import json
+import random
 
 class Datasrc:
 	def __getitem__(self, key):
@@ -15,6 +16,7 @@ class JsonDatasrc(Datasrc):
 		for line in file_open_func(file_path):
 			self.raw_json.append(load_item_func(line))
 			self.raw_json[-1]["id"] = len(self.raw_json) - 1
+		self.size = len(self.raw_json)
 
 	def describe(self, exclude=[]):
 		data_frame = pandas.DataFrame(self.raw_json)
@@ -41,7 +43,7 @@ class JsonDatasrc(Datasrc):
 		return iter(self.raw_json)
 
 	def __len__(self):
-		return len(self.raw_json)
+		return self.size
 
 	def mv_col(self, name, new_name):
 		for cell in self.list():
@@ -51,6 +53,14 @@ class JsonDatasrc(Datasrc):
 	
 	def rm_col(self, name):
 		self.mv_col(name, None)
+
+	def shuffle(self):
+		random.shuffle(self.raw_json)
+		self.resetid()
+	
+	def resetid(self):
+		for i in range(len(self.raw_json)):
+			self.raw_json[i]["id"] = i
 
 class _KeyIndex:
 	def __init__(self):
@@ -217,8 +227,15 @@ class JoinConvNet(torch.nn.Module):
 		torch.nn.Module.__init__(self)
 		self.conv1 = TextConvNet(num_neuron, embed_size, words_window_size, output_size)
 		self.conv2 = TextConvNet(num_neuron, embed_size, words_window_size, output_size)
-		self.mf = FactMachine(output_size * 2, output_size * 2)
+		#self.mf = FactMachine(output_size * 2, output_size * 2)
 
 	def forward(self, x):
 		o = [self.conv1(x[0]), self.conv2(x[1])]
-		return self.mf( torch.cat([o[0], o[1]], dim=1) )
+		#'''
+		m = len(x[0])
+		y = torch.autograd.Variable(torch.ones(m, 1))
+		for k in range(m):
+			y[k] = o[0][k].dot(o[1][k])
+		return y
+		#'''
+		#return self.mf( torch.cat([o[0], o[1]], dim=1) )

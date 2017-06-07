@@ -1,24 +1,33 @@
 import torch
 import torch.multiprocessing as mp
 import train
-import model
+import train.data
 from train.args import *
-from train.load_data import collection
+import model
+import random
+import sys
 
 net = model.JoinConvNet(n1, c, t, o)
 loss_fn = torch.nn.MSELoss()
-optim = torch.optim.RMSprop(net.parameters(), lr=lr, momentum=1e-5, weight_decay=5e-6)
+optim = torch.optim.RMSprop(net.parameters(), lr=lr, momentum=mmt, weight_decay=wd)
 
 num_process = 1
 cuda_available = torch.cuda.is_available()
 
+random.seed(4)
+train.data.load(sparsity=2)
+
 train_set, test_set = train.train_test_split(
-	collection, test_ratio, random_seed)
+	train.data.collection, test_ratio, random_seed)
 getvar = train.JointDataset.getvar
 collate = train.JointDataset.collate
 trainer = train.Trainer(optim, loss_fn, getvar)
 
 if num_process == 1:
+	net = model.JoinConvNet(n1, c, t, o)
+	optim = torch.optim.RMSprop(net.parameters(), lr=lr, momentum=mmt, weight_decay=wd)
+	trainer = train.Trainer(optim, loss_fn, getvar)
+
 	torch.manual_seed(random_seed+1)
 	if cuda_available:
 		torch.cuda.manual_seed(random_seed+1)
@@ -32,7 +41,8 @@ if num_process == 1:
 		batch_size=batch_size, shuffle=True,
 		collate_fn=collate, pin_memory=cuda_available)
 	trainer.train(net, train_loader, test_loader, epochs, log_interval)
-	exit()
+sys.exit()
+
 
 net.share_memory()
 
@@ -49,27 +59,3 @@ for rank in range(1, num_process+1):
 	processes.append(p)
 for p in processes:
 	p.join()
-
-'''
-mse_train = []
-mse_test = []
-
-for e in range(epochs):
-	cnt = len(I_train)
-	for idx in I_train:
-		pred, y = predict(net, load_data.collection, idx)
-		loss = train(net, optim, loss_fn, pred, y)
-		print(cnt, loss.data[0], end=',')
-		cnt -= 1
-	#mse_train.append(mean_squared_error(predict_batch(net, I_train), y_train))
-	mse_test.append(mean_squared_error(predict_batch(net, I_test), y_test))
-	print(i, "th iteration:", mse_train[-1], mse_test[-1])
-
-from matplotlib import pyplot as plt
-x = np.arange(1, epochs)
-with plt.style.context('fivethirtyeight'):
-	#plt.plot(x, mse_train, label='train')
-	plt.plot(x, mse_test, label='test')
-plt.legend()
-plt.show()
-'''

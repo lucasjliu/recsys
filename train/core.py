@@ -2,33 +2,10 @@ import sklearn.model_selection
 import torch
 import torch.utils.data
 from torch.autograd import Variable
-from .load_data import *
 import os
 import time
 import datetime
-
-'''
-def get_X(collection, I, embed_name=None):
-	X = []
-	for idx in I:
-		cell = collection.data[idx]
-		keys = [cell[key_name] for key_name in collection.key_names]
-		X.append([collection.concate_by_key(*pair, embed_name) 
-			for pair in zip(collection.key_names, keys)])
-	return X
-
-def get_y(collection, I, field_name):
-	return [collection.data[i][field_name] for i in I]
-
-def train_test_split(collection, test_ratio, seed):
-	item_idx = list(range(len(collection.data)))
-	I_train, I_test, _, _ = train_test_split(
-		item_idx, item_idx, test_size=test_ratio, random_state=seed)
-	X_train = get_X(collection, I_train)
-	X_test = get_X(collection, I_test)
-	y_train = get_y(collection, I_train, "overall")
-	y_test = get_y(collection, I_test, "overall")
-'''
+from .data import collection
 
 class JointDataset(torch.utils.data.Dataset):
 	def __init__(self, collection, indices):
@@ -39,11 +16,11 @@ class JointDataset(torch.utils.data.Dataset):
 		return len(self.indices)
 
 	def __getitem__(self, idx):
-		cell = collection.data[self.indices[idx]]
-		keys = [cell[key_name] for key_name in collection.key_names]
-		target = cell[collection.target_name]
-		data = [collection.concate_by_key(*pair, collection.data_name)
-			for pair in zip(collection.key_names, keys)]
+		cell = self.collection.data[self.indices[idx]]
+		keys = [cell[key_name] for key_name in self.collection.key_names]
+		target = cell[self.collection.target_name]
+		data = [self.collection.concate_by_key(*pair, self.collection.data_name)
+			for pair in zip(self.collection.key_names, keys)]
 		return data, target
 	
 	@staticmethod
@@ -85,6 +62,9 @@ def train_test_split(collection, test_ratio, random_seed):
 	test_set = JointDataset(collection, test_indices)
 	return train_set, test_set
 
+def timestamp():
+	return datetime.datetime.fromtimestamp(time.time()).strftime('%Y-%m-%d %H:%M:%S')
+
 class Trainer:
 	def __init__(self, optimizer, loss_fn, getvar):
 		self.optimizer = optimizer
@@ -94,29 +74,29 @@ class Trainer:
 	def train(self, model, train_loader, test_loader, epochs, log_interval=1):
 		for epoch in range(1, epochs + 1):
 			self.train_epoch(epoch, model, train_loader, log_interval)
-			if os.getpid() % 4 == 0: 
-				self.test_epoch(model, test_loader)
+			self.test_epoch(model, test_loader)
 	
-	@staticmethod
-	def timestamp():
-		return datetime.datetime.fromtimestamp(time.time()).strftime('%Y-%m-%d %H:%M:%S')
-
 	def train_epoch(self, epoch, model, data_loader, log_interval):
 		model.train()
 		pid = os.getpid()
-		for batch_idx, (data, target) in enumerate(data_loader):
+		train_loss = 0
+		for batch_idx, (data, target) in enumerate(data_loader, 1):
 			data, target = self.getvar(data, target)
 			self.optimizer.zero_grad()
 			pred = model(data)
 			loss = self.loss_fn(pred, target)
 			loss.backward()
 			self.optimizer.step()
+			train_loss += loss.data[0]
 			if batch_idx % log_interval == 0:
+				sample_num = len(data_loader.dataset)
 				print('[{}][{}] Epoch {}, {}/{} ({:.1f}%) Loss: {:.6f}'.format(
-					pid, Trainer.timestamp(), epoch, batch_idx * len(target), len(data_loader.dataset),
-					100. * batch_idx * len(target) / len(data_loader), loss.data[0]))
+					pid, timestamp(), epoch, min(batch_idx * data_loader.batch_size, sample_num), sample_num,
+					100. * batch_idx / len(data_loader), loss.data[0]))
+		train_loss /= len(data_loader)
+		print('\n[{}] Train set average loss: {:.4f}\n'.format(timestamp(), train_loss))
 
-	def test_epoch(self, epoch, model, data_loader, log_interval):
+	def test_epoch(self, model, data_loader):
 		model.eval()
 		test_loss = 0
 		for data, target in data_loader:
@@ -124,4 +104,4 @@ class Trainer:
 			pred = model(data)
 			test_loss += self.loss_fn(pred, target).data[0]
 		test_loss /= len(data_loader)
-		print('\n[{}] Test set: Average loss: {:.4f}\n'.format(Trainer.timestamp(), test_loss))
+		print('\n[{}] Test set average loss: {:.4f}\n'.format(timestamp(), test_loss))

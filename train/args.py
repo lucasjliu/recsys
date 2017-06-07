@@ -5,7 +5,7 @@ experiment args
 '''
 test_ratio, seed = 0.33, 42
 
-#80, 30, 3, 300, 50, 2e-3
-n1, o, t, c = 50, 20, 3, 300
-epochs, lr, batch_size, log_interval = 5, 2e-3, 100, 1
+n1, o, t, c = 100, 50, 3, 300
+epochs, batch_size, log_interval = 50, 30, 10
+lr, mmt, wd = 5e-5, 0.5, 0.01
 test_ratio, random_seed = 0.33, 233
