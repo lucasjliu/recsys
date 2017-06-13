@@ -1,3 +1,7 @@
+#
+#	by Jiahuan Liu
+#	06/2017
+#
 import torch
 import torch.multiprocessing as mp
 import train
@@ -41,7 +45,7 @@ if num_process == 1:
 		batch_size=batch_size, shuffle=True,
 		collate_fn=collate, pin_memory=cuda_available)
 	trainer.train(net, train_loader, test_loader, epochs, log_interval)
-sys.exit()
+	sys.exit()
 
 
 net.share_memory()
